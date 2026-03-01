@@ -10,7 +10,6 @@ export enum GamePhase {
   Preview,
   GodHintSetup,
   GodHintGM,
-  GodHintTimer,
 }
 
 export enum NGMode {

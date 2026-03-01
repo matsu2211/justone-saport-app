@@ -68,25 +68,80 @@ export const getRandomWord = (usedWords: string[]): string => {
 export const generateNGWords = async (word: string, count: number): Promise<string[]> => {
   if (count <= 0) return [];
   
-  try {
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `お題『${word}』に対して、ヒントで使われると簡単になりすぎるNGワードを${count}個出してください。単語のみで出力してください。`,
-      config: {
-        systemInstruction: "あなたはゲームマスターです。お題に対するNGワードを生成します。説明文は不要です。単語のみを改行区切りで出力してください。",
-      }
-    });
-    
-    const text = response.text || "";
-    return text.split('\n')
-      .map(w => w.trim().replace(/^[・\-\d\.]+\s*/, ''))
-      .filter(w => w !== "")
-      .slice(0, count);
-  } catch (error) {
-    console.error("Error generating NG words:", error);
+  const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || 
+                 (import.meta as any).env?.GEMINI_API_KEY || 
+                 process.env.GEMINI_API_KEY || 
+                 process.env.VITE_GEMINI_API_KEY;
+
+  if (!apiKey) {
+    console.error("Gemini API Key is not defined. Please check your .env.local file.");
     return [];
   }
+
+  // 試行するモデル名のリスト
+  const modelsToTry = [
+    "gemini-3-flash-preview",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-pro"
+  ];
+
+  for (const modelId of modelsToTry) {
+    try {
+      console.log(`[AI] Trying model: ${modelId} for お題: ${word}`);
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+      
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ 
+          parts: [{ text: `あなたはパーティーゲーム『ジャスト・ワン』の非常に厳格なゲームマスターです。お題『${word}』に関連し、ヒントとして使われると正解が簡単になりすぎるNGワードを【必ず、厳密に${count}個】出力してください。
+
+■ルール
+1. 説明や番号（1. 2. など）、記号は一切含めない。
+2. 単語のみを1行に1つずつ出力する。
+3. 必ず【${count}個】の単語をひねり出す。
+
+■出力例（お題が「りんご」で3個の場合）
+赤い
+果物
+青森
+
+お題は『${word}』です。NGワードを【厳密に${count}個】出力してください。` }] 
+        }],
+        generationConfig: {
+          temperature: 0.1, // さらに指示に忠実にする
+          maxOutputTokens: 100,
+        }
+      })
+    });
+
+    if (response.ok) {
+        const data = await response.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        console.log(`[AI] Success with ${modelId}. Count requested: ${count}. Raw response:`, text);
+        
+        // 改行や区切り文字で分割。1文字の単語も許可するように修正
+        const words = text
+          .split(/[\n,、\s]+/)
+          .map(w => w.trim().replace(/^[・\-\d\.]+\s*/, '').replace(/[()（）]/g, ''))
+          .filter(w => w !== "") // 文字数制限を解除
+          .slice(0, count);
+        
+        console.log("[AI] Processed NG words:", words);
+        return words;
+      } else {
+        const errorData = await response.json();
+        console.warn(`[AI] Model ${modelId} failed:`, errorData.error?.message || response.statusText);
+      }
+    } catch (error) {
+      console.warn(`[AI] Error connecting to ${modelId}:`, error);
+    }
+  }
+
+  console.error("[AI] All attempts to generate NG words failed.");
+  return [];
 };
 
 export interface DuplicateCheckResult {

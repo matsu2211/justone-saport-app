@@ -8,7 +8,6 @@ import RoundScreen from './components/RoundScreen';
 import PreviewScreen from './components/PreviewScreen';
 import GodHintSetup from './components/GodHint/GodHintSetup';
 import GodHintGM from './components/GodHint/GodHintGM';
-import GodHintTimer from './components/GodHint/GodHintTimer';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GamePhase>(GamePhase.Start);
@@ -16,12 +15,10 @@ const App: React.FC = () => {
   const [roundKey, setRoundKey] = useState<number>(1);
   const [godHintSettings, setGodHintSettings] = useState<{ timeLimit: number; ngMode: NGMode } | null>(null);
 
-  // Handle URL-based routing for God Hint Timer
+  // Handle URL-based routing
   useEffect(() => {
     const path = window.location.pathname.replace(/\/$/, '');
-    if (path === '/timer') {
-      setGameState(GamePhase.GodHintTimer);
-    } else if (path === '/gm') {
+    if (path === '/gm') {
       setGameState(GamePhase.GodHintSetup);
     }
   }, []);
@@ -84,17 +81,10 @@ const App: React.FC = () => {
         return <GodHintSetup onStart={handleGodHintSetupComplete} onBack={handleBack} onHome={handleRestart} />;
       case GamePhase.GodHintGM:
         return godHintSettings ? <GodHintGM initialSettings={godHintSettings} onRestart={handleRestart} /> : null;
-      case GamePhase.GodHintTimer:
-        return <GodHintTimer />;
       default:
         return <StartScreen onStart={handleStartGame} onPreview={handleStartPreview} onGodHint={handleStartGodHint} />;
     }
   };
-
-  // Timer screen should be full width and no header
-  if (gameState === GamePhase.GodHintTimer) {
-    return <GodHintTimer />;
-  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 text-slate-800">

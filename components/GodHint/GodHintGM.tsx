@@ -40,58 +40,6 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
-  const stateRef = useRef(state);
-
-  // Keep stateRef in sync
-  useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
-
-  // Initialize WebSocket
-  useEffect(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}`;
-    
-    const connect = () => {
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
-
-      ws.onopen = () => {
-        console.log('GM: WebSocket connected');
-        // Send initial state
-        ws.send(JSON.stringify({ type: 'UPDATE_STATE', state: stateRef.current }));
-      };
-
-      ws.onclose = () => {
-        console.log('GM: WebSocket disconnected. Retrying...');
-        setTimeout(connect, 2000);
-      };
-
-      ws.onerror = (err) => {
-        console.error('GM: WebSocket error', err);
-      };
-    };
-
-    connect();
-
-    return () => {
-      wsRef.current?.close();
-    };
-  }, []);
-
-  // Sync state to the server
-  const syncState = useCallback((newState: GodHintState) => {
-    console.log('GM: Syncing state via WS', newState);
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: 'UPDATE_STATE', state: newState }));
-    }
-  }, []);
-
-  // Sync whenever state changes
-  useEffect(() => {
-    syncState(state);
-  }, [state, syncState]);
 
   // Update local state
   const updateState = (updates: Partial<GodHintState>) => {
@@ -119,10 +67,13 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
     setIsLoading(true);
     const word = getRandomWord(state.usedWords);
     
+    // 現在のモードに応じて個数を決定。ログを出力してデバッグ。
     let ngCount = 0;
-    if (state.ngMode === NGMode.EASY) ngCount = 1;
-    if (state.ngMode === NGMode.NORMAL) ngCount = 2;
-    if (state.ngMode === NGMode.HARD) ngCount = 3;
+    if (state.ngMode === NGMode.EASY) ngCount = 2;
+    else if (state.ngMode === NGMode.NORMAL) ngCount = 3;
+    else if (state.ngMode === NGMode.HARD) ngCount = 4;
+
+    console.log(`[GM] Fetching word: ${word}, Mode: ${state.ngMode}, Expected Count: ${ngCount}`);
 
     const ngWords = await generateNGWords(word, ngCount);
     
@@ -138,21 +89,10 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
 
   // Start game
   const startGame = async () => {
-    // Open timer window
-    // In some environments, popups might be blocked or show a fallback page.
-    // We provide a direct link as well.
-    try {
-      const timerWindow = window.open('/timer', 'GodHintTimer', 'width=800,height=600');
-      if (!timerWindow) {
-        console.warn('Popup blocked. Please allow popups or open /timer manually.');
-      }
-    } catch (e) {
-      console.error('Failed to open timer window:', e);
-    }
-    
     await nextWord(false);
     updateState({ status: GodHintStatus.Ready });
   };
+
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -226,20 +166,6 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
           <PlayIcon className="w-8 h-8" />
           プレイ<ruby>開始<rt>かいし</rt></ruby>！
         </button>
-        <div className="mt-4 flex flex-col items-center gap-2">
-          <p className="text-slate-400 text-sm">
-            ※「プレイ開始」を押してもタイマー画面が開かない場合は、以下のリンクを別窓で開いてください。
-          </p>
-          <a 
-            href="/timer" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-sky-500 font-bold hover:underline flex items-center gap-1"
-          >
-            <MaximizeIcon className="w-4 h-4" />
-            タイマー画面を直接開く
-          </a>
-        </div>
         <button
           onClick={handleRestart}
           className="mt-8 px-8 py-3 text-slate-400 font-bold hover:text-slate-600 transition-all flex items-center gap-2 mx-auto"
@@ -247,9 +173,6 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
           <HomeIcon className="w-5 h-5" />
           ホームへ<ruby>戻<rt>もど</rt></ruby>る
         </button>
-        <p className="mt-4 text-slate-400 text-sm">
-          ※「プレイ<ruby>開始<rt>かいし</rt></ruby>」を<ruby>押<rt>お</rt></ruby>すと<ruby>別<rt>べつ</rt></ruby>ウィンドウでタイマー<ruby>画面<rt>がめん</rt></ruby>が<ruby>開<rt>ひら</rt></ruby>きます。
-        </p>
       </div>
     );
   }
@@ -326,14 +249,6 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
                 {state.status === GodHintStatus.Playing ? <ruby>一時停止<rt>いちじていし</rt></ruby> : <ruby>再開<rt>さいかい</rt></ruby>}
               </button>
             )}
-            <button
-              onClick={() => syncState(stateRef.current)}
-              className="w-full py-3 bg-sky-50 text-sky-600 font-bold rounded-xl hover:bg-sky-100 transition-all flex items-center justify-center gap-2"
-              title="タイマー画面と同期"
-            >
-              <RotateCcwIcon className="w-5 h-5" />
-              <ruby>同期<rt>どうき</rt></ruby>する
-            </button>
             <button
               onClick={handleRestart}
               className="w-full py-3 text-slate-400 font-bold hover:text-slate-600 transition-all flex items-center justify-center gap-2"
