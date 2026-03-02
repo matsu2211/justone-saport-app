@@ -15,6 +15,7 @@ import {
 interface RulesModalProps {
   isOpen: boolean;
   onClose: () => void;
+  mode?: 'standard' | 'god-hint';
 }
 
 const RuleStep: React.FC<{ 
@@ -44,19 +45,24 @@ const RuleStep: React.FC<{
   </motion.div>
 );
 
-const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
+const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, mode = 'standard' }) => {
   const [isCopied, setIsCopied] = useState(false);
   const [isPhraseCopied, setIsPhraseCopied] = useState(false);
 
-  const rulesText = `プレイヤーのひとりが「回答者」となり、自分だけが見えないヒミツの言葉を１つランダムに選びます。
+  const standardRules = `プレイヤーのひとりが「回答者」となり、自分だけが見えないヒミツの言葉を１つランダムに選びます。
 他のプレイヤーは回答者がヒミツの言葉を推理しやすいようなヒントを１つずつ考えます。
 ただし！記入したヒントが他の誰かと同じ内容だと、そのヒントを回答者が見ることはできなくなるので要注意！
-ヒントを考えるときにプレイヤー同士が話し合うことは禁止です！
-「この回答者なら、あんな言葉が伝わりやすいはず」
-「この人はこういうヒントを出しそうだから、自分はこのヒントでいってみよう！」
-他の人とかぶらないように、お題を当てるためのヒントを考えよう！`;
+ヒントを考えるときにプレイヤー同士が話し合うことは禁止です！`;
 
-  const phrase = "他の人とかぶらないように、お題を当てるためのヒントを考えよう！";
+  const godHintRules = `回答者（お題を当てる人）とヒント出題者に分かれます。
+ヒント出題者は画面に表示される「お題」と、使ってはいけない「NGワード」を確認します。
+ヒント出題者はNGワードを絶対に言わないように注意しながら、回答者にお題を伝えるためのヒントを出します。
+回答者が正解したら次の問題へ！制限時間内にどれだけ多く正解できるか挑戦しましょう。`;
+
+  const rulesText = mode === 'god-hint' ? godHintRules : standardRules;
+  const phrase = mode === 'god-hint' 
+    ? "NGワードを避けながら、神がかりなヒントでお題を導こう！"
+    : "他の人とかぶらないように、お題を当てるためのヒントを考えよう！";
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(rulesText).then(() => {
@@ -97,7 +103,9 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
                 <div className="p-2 bg-sky-500 rounded-lg text-white flex-shrink-0">
                   <Lightbulb size={24} />
                 </div>
-                <h2 className="text-2xl font-black text-slate-800"><ruby>遊<rt>あそ</rt></ruby>びかたガイド</h2>
+                <h2 className="text-2xl font-black text-slate-800">
+                  {mode === 'god-hint' ? <><ruby>神<rt>かみ</rt></ruby>ヒントモードの<ruby>遊<rt>あそ</rt></ruby>びかた</> : <><ruby>遊<rt>あそ</rt></ruby>びかたガイド</>}
+                </h2>
               </div>
               <button
                 onClick={onClose}
@@ -110,83 +118,116 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
             {/* Content */}
             <div className="p-6 overflow-y-auto space-y-4 custom-scrollbar">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <RuleStep 
-                  index={0}
-                  icon={<User size={24} />}
-                  title={<><ruby>回答者<rt>かいとうしゃ</rt></ruby>の<ruby>決定<rt>けってい</rt></ruby></>}
-                  description={<p><ruby>一人<rt>ひとり</rt></ruby>が「<ruby>回答者<rt>かいとうしゃ</rt></ruby>」になります。<ruby>回答者<rt>かいとうしゃ</rt></ruby>は<ruby>自分<rt>じぶん</rt></ruby>だけが<ruby>見<rt>み</rt></ruby>えないお<ruby>題<rt>だい</rt></ruby>を1つ<ruby>選<rt>えら</rt></ruby>びます。</p>}
-                />
-                <RuleStep 
-                  index={1}
-                  icon={<Pencil size={24} />}
-                  title={<>ヒントを<ruby>考<rt>かんが</rt></ruby>える</>}
-                  description={
-                    <>
-                      <p><ruby>他<rt>ほか</rt></ruby>の<ruby>人<rt>ひと</rt></ruby>は、<ruby>回答者<rt>かいとうしゃ</rt></ruby>がお<ruby>題<rt>だい</rt></ruby>を<ruby>当<rt>あ</rt></ruby>てられるようなヒントを1つずつ<ruby>書<rt>か</rt></ruby>きます。</p>
-                      <div className="mt-2 p-2 bg-white rounded-lg border border-slate-200 text-[11px] shadow-sm">
-                        <div className="text-[9px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Example</div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded font-bold">お題：りんご</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1 text-slate-500">
-                          <span className="bg-slate-100 px-1.5 py-0.5 rounded">赤い</span>
-                          <span className="bg-slate-100 px-1.5 py-0.5 rounded">果物</span>
-                          <span className="bg-slate-100 px-1.5 py-0.5 rounded">青森</span>
-                        </div>
-                      </div>
-                    </>
-                  }
-                />
-                <RuleStep 
-                  index={2}
-                  icon={<CopyX size={24} />}
-                  title={<><ruby>同<rt>おな</rt></ruby>じヒントは<ruby>無効<rt>むこう</rt></ruby></>}
-                  description={
-                    <>
-                      <p><ruby>他<rt>ほか</rt></ruby>の<ruby>人<rt>ひと</rt></ruby>とヒントが<ruby>被<rt>かぶ</rt></ruby>ったら、そのヒントは<ruby>消去<rt>しょうきょ</rt></ruby>されます！</p>
-                      <div className="mt-2 p-2 bg-white rounded-lg border border-slate-200 text-[11px] shadow-sm">
-                        <div className="text-[9px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Example</div>
-                        <div className="flex items-center justify-between gap-1">
-                          <div className="flex flex-col items-center">
-                            <span className="text-[9px] text-slate-400">Aさん</span>
-                            <span className="bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded border border-rose-100 line-through">赤い</span>
+                {mode === 'god-hint' ? (
+                  <>
+                    <RuleStep 
+                      index={0}
+                      icon={<User size={24} />}
+                      title={<><ruby>役割<rt>やくわり</rt></ruby>の<ruby>決定<rt>けってい</rt></ruby></>}
+                      description={<p><ruby>回答者<rt>かいとうしゃ</rt></ruby>（お<ruby>題<rt>だい</rt></ruby>を<ruby>当<rt>あ</rt></ruby>てる<ruby>人<rt>ひと</rt></ruby>）とヒント<ruby>出題者<rt>しゅつだいしゃ</rt></ruby>に<ruby>分<rt>わ</rt></ruby>かれます。</p>}
+                    />
+                    <RuleStep 
+                      index={1}
+                      icon={<Target size={24} />}
+                      title={<>お<ruby>題<rt>だい</rt></ruby>とNGワードの<ruby>確認<rt>かくにん</rt></ruby></>}
+                      description={<p>ヒント<ruby>出題者<rt>しゅつだいしゃ</rt></ruby>は<ruby>画面<rt>がめん</rt></ruby>に<ruby>表示<rt>ひょうじ</rt></ruby>される「お<ruby>題<rt>だい</rt></ruby>」と、ヒントに<ruby>使<rt>つか</rt></ruby>ってはいけない「NGワード」を<ruby>確認<rt>かくにん</rt></ruby>します。</p>}
+                    />
+                    <RuleStep 
+                      index={2}
+                      icon={<MessageCircleOff size={24} />}
+                      title={<>ヒントを<ruby>出<rt>だ</rt></ruby>す</>}
+                      description={<p>ヒント<ruby>出題者<rt>しゅつだいしゃ</rt></ruby>はNGワードを<ruby>絶対<rt>ぜったい</rt></ruby>に<ruby>言<rt>い</rt></ruby>わないように<ruby>注意<rt>ちゅうい</rt></ruby>しながら、<ruby>回答者<rt>かいとうしゃ</rt></ruby>にお<ruby>題<rt>だい</rt></ruby>を<ruby>伝<rt>つた</rt></ruby>えるためのヒントを<ruby>出<rt>だ</rt></ruby>します。</p>}
+                    />
+                    <RuleStep 
+                      index={3}
+                      icon={<Check size={24} />}
+                      title={<><ruby>連続正解<rt>れんぞくせいかい</rt></ruby>を<ruby>目指<rt>めざ</rt></ruby>す</>}
+                      description={<p><ruby>回答者<rt>かいとうしゃ</rt></ruby>が<ruby>正解<rt>せいかい</rt></ruby>したら<ruby>次<rt>つぎ</rt></ruby>の<ruby>問題<rt>もんだい</rt></ruby>へ！<ruby>制限時間内<rt>せいげんじかんない</rt></ruby>にどれだけ<ruby>多<rt>おお</rt></ruby>く<ruby>正解<rt>せいかい</rt></ruby>できるか<ruby>挑戦<rt>ちょうせん</rt></ruby>しましょう。</p>}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <RuleStep 
+                      index={0}
+                      icon={<User size={24} />}
+                      title={<><ruby>回答者<rt>かいとうしゃ</rt></ruby>の<ruby>決定<rt>けってい</rt></ruby></>}
+                      description={<p><ruby>一人<rt>ひとり</rt></ruby>が「<ruby>回答者<rt>かいとうしゃ</rt></ruby>」になります。<ruby>回答者<rt>かいとうしゃ</rt></ruby>は<ruby>自分<rt>じぶん</rt></ruby>だけが<ruby>見<rt>み</rt></ruby>えないお<ruby>題<rt>だい</rt></ruby>を1つ<ruby>選<rt>えら</rt></ruby>びます。</p>}
+                    />
+                    <RuleStep 
+                      index={1}
+                      icon={<Pencil size={24} />}
+                      title={<>ヒントを<ruby>考<rt>かんが</rt></ruby>える</>}
+                      description={
+                        <>
+                          <p><ruby>他<rt>ほか</rt></ruby>の<ruby>人<rt>ひと</rt></ruby>は、<ruby>回答者<rt>かいとうしゃ</rt></ruby>がお<ruby>題<rt>だい</rt></ruby>を<ruby>当<rt>あ</rt></ruby>てられるようなヒントを1つずつ<ruby>書<rt>か</rt></ruby>きます。</p>
+                          <div className="mt-2 p-2 bg-white rounded-lg border border-slate-200 text-[11px] shadow-sm">
+                            <div className="text-[9px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Example</div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded font-bold">お題：りんご</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1 text-slate-500">
+                              <span className="bg-slate-100 px-1.5 py-0.5 rounded">赤い</span>
+                              <span className="bg-slate-100 px-1.5 py-0.5 rounded">果物</span>
+                              <span className="bg-slate-100 px-1.5 py-0.5 rounded">青森</span>
+                            </div>
                           </div>
-                          <span className="text-slate-300 font-bold">＝</span>
-                          <div className="flex flex-col items-center">
-                            <span className="text-[9px] text-slate-400">Bさん</span>
-                            <span className="bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded border border-rose-100 line-through">赤い</span>
+                        </>
+                      }
+                    />
+                    <RuleStep 
+                      index={2}
+                      icon={<CopyX size={24} />}
+                      title={<><ruby>同<rt>おな</rt></ruby>じヒントは<ruby>無効<rt>むこう</rt></ruby></>}
+                      description={
+                        <>
+                          <p><ruby>他<rt>ほか</rt></ruby>の<ruby>人<rt>ひと</rt></ruby>とヒントが<ruby>被<rt>かぶ</rt></ruby>ったら、そのヒントは<ruby>消去<rt>しょうきょ</rt></ruby>されます！</p>
+                          <div className="mt-2 p-2 bg-white rounded-lg border border-slate-200 text-[11px] shadow-sm">
+                            <div className="text-[9px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Example</div>
+                            <div className="flex items-center justify-between gap-1">
+                              <div className="flex flex-col items-center">
+                                <span className="text-[9px] text-slate-400">Aさん</span>
+                                <span className="bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded border border-rose-100 line-through">赤い</span>
+                              </div>
+                              <span className="text-slate-300 font-bold">＝</span>
+                              <div className="flex flex-col items-center">
+                                <span className="text-[9px] text-slate-400">Bさん</span>
+                                <span className="bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded border border-rose-100 line-through">赤い</span>
+                              </div>
+                              <span className="text-slate-400 mx-0.5">→</span>
+                              <span className="bg-rose-500 text-white px-1.5 py-0.5 rounded font-bold shadow-sm">消去！</span>
+                            </div>
                           </div>
-                          <span className="text-slate-400 mx-0.5">→</span>
-                          <span className="bg-rose-500 text-white px-1.5 py-0.5 rounded font-bold shadow-sm">消去！</span>
-                        </div>
-                      </div>
-                    </>
-                  }
-                />
-                <RuleStep 
-                  index={3}
-                  icon={<Target size={24} />}
-                  title={<>お<ruby>題<rt>だい</rt></ruby>を<ruby>当<rt>あ</rt></ruby>てる</>}
-                  description={<p><ruby>残<rt>のこ</rt></ruby>ったヒントだけを<ruby>見<rt>み</rt></ruby>て、<ruby>回答者<rt>かいとうしゃ</rt></ruby>がお<ruby>題<rt>だい</rt></ruby>を<ruby>推理<rt>すいり</rt></ruby>します。<ruby>正解<rt>せいかい</rt></ruby>を<ruby>目指<rt>めざ</rt></ruby>そう！</p>}
-                />
+                        </>
+                      }
+                    />
+                    <RuleStep 
+                      index={3}
+                      icon={<Target size={24} />}
+                      title={<>お<ruby>題<rt>だい</rt></ruby>を<ruby>当<rt>あ</rt></ruby>てる</>}
+                      description={<p><ruby>残<rt>のこ</rt></ruby>ったヒントだけを<ruby>見<rt>み</rt></ruby>て、<ruby>回答者<rt>かいとうしゃ</rt></ruby>がお<ruby>題<rt>だい</rt></ruby>を<ruby>推理<rt>すいり</rt></ruby>します。<ruby>正解<rt>せいかい</rt></ruby>を<ruby>目指<rt>めざ</rt></ruby>そう！</p>}
+                    />
+                  </>
+                )}
               </div>
 
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex gap-4 items-start"
-              >
-                <div className="p-2 bg-amber-100 rounded-lg text-amber-600">
-                  <MessageCircleOff size={20} />
-                </div>
-                <div>
-                  <h4 className="font-bold text-amber-900 text-sm"><ruby>禁止事項<rt>きんしじこう</rt></ruby></h4>
-                  <p className="text-amber-800 text-xs mt-1 leading-relaxed">
-                    ヒントを<ruby>考<rt>かんが</rt></ruby>えている<ruby>間<rt>あいだ</rt></ruby>、プレイヤー<ruby>同士<rt>どうし</rt></ruby>で<ruby>相談<rt>そうだん</rt></ruby>したり、ヒントの<ruby>内容<rt>ないよう</rt></ruby>を<ruby>教<rt>おし</rt></ruby>え<ruby>合<rt>あ</rt></ruby>ったりしてはいけません。
-                  </p>
-                </div>
-              </motion.div>
+              {mode === 'standard' && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                  className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex gap-4 items-start"
+                >
+                  <div className="p-2 bg-amber-100 rounded-lg text-amber-600">
+                    <MessageCircleOff size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-amber-900 text-sm"><ruby>禁止事項<rt>きんしじこう</rt></ruby></h4>
+                    <p className="text-amber-800 text-xs mt-1 leading-relaxed">
+                      ヒントを<ruby>考<rt>かんが</rt></ruby>えている<ruby>間<rt>あいだ</rt></ruby>、プレイヤー<ruby>同士<rt>どうし</rt></ruby>で<ruby>相談<rt>そうだん</rt></ruby>したり、ヒントの<ruby>内容<rt>ないよう</rt></ruby>を<ruby>教<rt>おし</rt></ruby>え<ruby>合<rt>あ</rt></ruby>ったりしてはいけません。
+                    </p>
+                  </div>
+                </motion.div>
+              )}
 
               <motion.div 
                 initial={{ opacity: 0 }}
@@ -196,7 +237,13 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
               >
                 <div className="inline-flex items-center gap-2 group/phrase relative">
                   <p className="text-slate-500 text-sm italic">
-                    「<ruby>他<rt>ほか</rt></ruby>の<ruby>人<rt>ひと</rt></ruby>とかぶらないように、お<ruby>題<rt>だい</rt></ruby>を<ruby>当<rt>あ</rt></ruby>てるためのヒントを<ruby>考<rt>かんが</rt></ruby>えよう！」
+                    「
+                    {mode === 'god-hint' ? (
+                      <><ruby>NGワード<rt>えぬじーわーど</rt></ruby>を<ruby>避<rt>よ</rt></ruby>けながら、<ruby>神<rt>かみ</rt></ruby>がかりなヒントでお<ruby>題<rt>だい</rt></ruby>を<ruby>導<rt>みちび</rt></ruby>こう！</>
+                    ) : (
+                      <><ruby>他<rt>ほか</rt></ruby>の<ruby>人<rt>ひと</rt></ruby>とかぶらないように、お<ruby>題<rt>だい</rt></ruby>を<ruby>当<rt>あ</rt></ruby>てるためのヒントを<ruby>考<rt>かんが</rt></ruby>えよう！</>
+                    )}
+                    」
                   </p>
                   <button
                     onClick={handleCopyPhrase}

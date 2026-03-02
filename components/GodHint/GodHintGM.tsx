@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GodHintState, GodHintStatus, NGMode } from '../../types';
 import { getRandomWord, generateNGWords } from '../../services/wordService';
+import RulesModal from '../RulesModal';
 import { 
   PlayIcon, 
   PauseIcon, 
@@ -16,7 +17,8 @@ import {
   TrophyIcon,
   ShieldCheckIcon,
   HomeIcon,
-  MaximizeIcon
+  MaximizeIcon,
+  QuestionMarkCircleIcon
 } from '../Icons';
 
 interface GodHintGMProps {
@@ -39,6 +41,8 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
 
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [scoreCopied, setScoreCopied] = useState(false);
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Update local state
@@ -132,6 +136,14 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
     });
   };
 
+  const handleCopyScore = () => {
+    const text = `正解数：${state.score}個！`;
+    navigator.clipboard.writeText(text).then(() => {
+      setScoreCopied(true);
+      setTimeout(() => setScoreCopied(false), 2000);
+    });
+  };
+
   const handleRestart = () => {
     onRestart();
   };
@@ -173,6 +185,13 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
           <HomeIcon className="w-5 h-5" />
           ホームへ<ruby>戻<rt>もど</rt></ruby>る
         </button>
+        <button
+          onClick={() => setIsRulesOpen(true)}
+          className="mt-4 px-8 py-3 text-slate-400 font-bold hover:text-sky-500 transition-all flex items-center gap-2 mx-auto"
+        >
+          <QuestionMarkCircleIcon className="w-5 h-5" />
+          ルールを<ruby>確認<rt>かくにん</rt></ruby>
+        </button>
       </div>
     );
   }
@@ -187,8 +206,20 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
 
         <TrophyIcon className="w-24 h-24 text-amber-500 mx-auto mb-4" />
         <h2 className="text-4xl font-black text-slate-800 mb-2">ゲーム<ruby>終了<rt>しゅうりょう</rt></ruby>！</h2>
-        <div className="text-6xl font-black text-sky-500 mb-10">
-          <ruby>正解数<rt>せいかいすう</rt></ruby>: {state.score}
+        <div className="text-6xl font-black text-sky-500 mb-10 flex flex-col items-center gap-4">
+          <div><ruby>正解数<rt>せいかいすう</rt></ruby>: {state.score}</div>
+          <button
+            onClick={handleCopyScore}
+            className="text-sm px-4 py-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 transition-all flex items-center gap-2 relative"
+          >
+            <ClipboardIcon className="w-4 h-4" />
+            <ruby>結果<rt>けっか</rt></ruby>をコピー
+            {scoreCopied && (
+              <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded animate-bounce whitespace-nowrap">
+                Copied!
+              </span>
+            )}
+          </button>
         </div>
 
         <button
@@ -197,6 +228,13 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
         >
           <RotateCcwIcon className="w-6 h-6" />
           トップへ<ruby>戻<rt>もど</rt></ruby>る
+        </button>
+        <button
+          onClick={() => setIsRulesOpen(true)}
+          className="mt-8 px-8 py-3 text-slate-400 font-bold hover:text-sky-500 transition-all flex items-center gap-2 mx-auto"
+        >
+          <QuestionMarkCircleIcon className="w-5 h-5" />
+          ルールを<ruby>確認<rt>かくにん</rt></ruby>
         </button>
       </div>
     );
@@ -255,6 +293,13 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
             >
               <HomeIcon className="w-4 h-4" />
               ホームへ
+            </button>
+            <button
+              onClick={() => setIsRulesOpen(true)}
+              className="w-full py-3 text-slate-400 font-bold hover:text-sky-500 transition-all flex items-center justify-center gap-2"
+            >
+              <QuestionMarkCircleIcon className="w-4 h-4" />
+              ルールを<ruby>確認<rt>かくにん</rt></ruby>
             </button>
           </div>
         </div>
@@ -316,24 +361,29 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
             <button
               onClick={() => nextWord(true)}
               disabled={isLoading}
-              className="py-6 bg-emerald-500 text-white font-black text-2xl rounded-2xl shadow-lg shadow-emerald-100 hover:bg-emerald-600 active:scale-95 transition-all flex flex-col items-center gap-1"
+              className="py-6 bg-emerald-500 text-white font-black rounded-2xl shadow-lg shadow-emerald-100 hover:bg-emerald-600 active:scale-95 transition-all flex items-center justify-center gap-3"
             >
-              <CheckCircleIcon className="w-8 h-8" />
-              <ruby>次<rt>つぎ</rt></ruby>のお<ruby>題<rt>だい</rt></ruby>へ
-              <span className="text-[10px] opacity-70 font-bold uppercase tracking-widest">ENTER</span>
+              <CheckCircleIcon className="w-8 h-8 flex-shrink-0" />
+              <div className="flex flex-col items-start leading-tight">
+                <span className="text-2xl"><ruby>次<rt>つぎ</rt></ruby>のお<ruby>題<rt>だい</rt></ruby>へ</span>
+                <span className="text-[10px] opacity-70 font-bold uppercase tracking-widest">ENTER</span>
+              </div>
             </button>
             <button
               onClick={() => nextWord(false)}
               disabled={isLoading}
-              className="py-6 bg-amber-500 text-white font-black text-2xl rounded-2xl shadow-lg shadow-amber-100 hover:bg-amber-600 active:scale-95 transition-all flex flex-col items-center gap-1"
+              className="py-6 bg-amber-500 text-white font-black rounded-2xl shadow-lg shadow-amber-100 hover:bg-amber-600 active:scale-95 transition-all flex items-center justify-center gap-3"
             >
-              <SkipForwardIcon className="w-8 h-8" />
-              PASS
-              <span className="text-[10px] opacity-70 font-bold uppercase tracking-widest">SPACE</span>
+              <SkipForwardIcon className="w-8 h-8 flex-shrink-0" />
+              <div className="flex flex-col items-start leading-tight">
+                <span className="text-2xl font-black">PASS</span>
+                <span className="text-[10px] opacity-70 font-bold uppercase tracking-widest">SPACE</span>
+              </div>
             </button>
           </div>
         </div>
       </div>
+      <RulesModal isOpen={isRulesOpen} onClose={() => setIsRulesOpen(false)} mode="god-hint" />
     </div>
   );
 };

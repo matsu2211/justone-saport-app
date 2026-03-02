@@ -200,7 +200,7 @@ const GodHintSetup: React.FC<GodHintSetupProps> = ({ onStart, onBack, onHome }) 
                 ))}
               </div>
               <p className="mt-2 text-[10px] text-slate-400 font-bold italic leading-tight">
-                ※NGモードをONにすると、AIがお<ruby>題<rt>だい</rt></ruby>に<ruby>合<rt>あ</rt></ruby>わせたNGワードを<ruby>自動生成<rt>じどうせいせい</rt></ruby>します。
+                ※NGモードをONにすると、<ruby>難易度<rt>なんいど</rt></ruby>ごとにNGワード<ruby>個数<rt>こすう</rt></ruby>が<ruby>増<rt>ふ</rt></ruby>えます。
               </p>
             </section>
           </div>
