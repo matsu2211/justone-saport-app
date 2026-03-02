@@ -279,13 +279,22 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
                 タイマースタート！
               </button>
             ) : (
-              <button
-                onClick={() => updateState({ status: state.status === GodHintStatus.Playing ? GodHintStatus.Paused : GodHintStatus.Playing })}
-                className="w-full py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
-              >
-                {state.status === GodHintStatus.Playing ? <PauseIcon className="w-5 h-5" /> : <PlayIcon className="w-5 h-5" />}
-                {state.status === GodHintStatus.Playing ? <ruby>一時停止<rt>いちじていし</rt></ruby> : <ruby>再開<rt>さいかい</rt></ruby>}
-              </button>
+              <>
+                <button
+                  onClick={() => updateState({ status: state.status === GodHintStatus.Playing ? GodHintStatus.Paused : GodHintStatus.Playing })}
+                  className="w-full py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
+                >
+                  {state.status === GodHintStatus.Playing ? <PauseIcon className="w-5 h-5" /> : <PlayIcon className="w-5 h-5" />}
+                  {state.status === GodHintStatus.Playing ? <ruby>一時停止<rt>いちじていし</rt></ruby> : <ruby>再開<rt>さいかい</rt></ruby>}
+                </button>
+                <button
+                  onClick={() => updateState({ status: GodHintStatus.Finished })}
+                  className="w-full py-3 mt-2 bg-rose-50 text-rose-500 font-bold rounded-xl hover:bg-rose-100 border border-rose-100 transition-all flex items-center justify-center gap-2"
+                >
+                  <TrophyIcon className="w-5 h-5" />
+                  ゲームを<ruby>終了<rt>しゅうりょう</rt></ruby>する
+                </button>
+              </>
             )}
             <button
               onClick={handleRestart}
