@@ -1,22 +1,20 @@
 
 import React, { useState } from 'react';
-import { NGMode, GamePhase } from '../../types';
+import { NGMode } from '../../types';
 import { ClockIcon, ShieldCheckIcon, PlayIcon, ArrowLeftIcon, HomeIcon, ListIcon, LightbulbIcon, UsersIcon, TrophyIcon } from '../Icons';
 
-interface GodHintSetupProps {
+interface NGHintSetupProps {
   onStart: (settings: { timeLimit: number; ngMode: NGMode }) => void;
   onBack: () => void;
   onHome: () => void;
 }
 
-const GodHintSetup: React.FC<GodHintSetupProps> = ({ onStart, onBack, onHome }) => {
+const NGHintSetup: React.FC<NGHintSetupProps> = ({ onStart, onBack, onHome }) => {
   const [timeLimit, setTimeLimit] = useState(60);
-  const [ngMode, setNgMode] = useState<NGMode>(NGMode.OFF);
-  const [customTime, setCustomTime] = useState('');
+  const [ngMode, setNgMode] = useState<NGMode>(NGMode.NORMAL);
 
   const handleStart = () => {
-    const finalTime = customTime ? parseInt(customTime, 10) : timeLimit;
-    onStart({ timeLimit: finalTime, ngMode });
+    onStart({ timeLimit, ngMode });
   };
 
   const handleHome = () => {
@@ -28,9 +26,9 @@ const GodHintSetup: React.FC<GodHintSetupProps> = ({ onStart, onBack, onHome }) 
       <div className="text-center mb-10">
         <h2 className="text-3xl font-black text-slate-800 mb-2 flex items-center justify-center gap-3">
           <PlayIcon className="w-10 h-10 text-sky-500" />
-          <ruby>神<rt>かみ</rt></ruby>ヒントモード
+          NGワードゲーム
         </h2>
-        <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">God Hint Mode Setup</p>
+        <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">NG Hint Game Setup</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
@@ -141,39 +139,33 @@ const GodHintSetup: React.FC<GodHintSetupProps> = ({ onStart, onBack, onHome }) 
           <div className="space-y-8">
             {/* Time Limit Selection */}
             <section>
-              <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
                 <ClockIcon className="w-4 h-4" />
                 <ruby>制限時間<rt>せいげんじかん</rt></ruby>
               </h4>
-              <div className="grid grid-cols-2 gap-2">
-                {[60, 90, 120].map((time) => (
-                  <button
-                    key={time}
-                    onClick={() => { setTimeLimit(time); setCustomTime(''); }}
-                    className={`py-3 px-4 rounded-xl font-bold transition-all ${
-                      timeLimit === time && !customTime
-                        ? 'bg-sky-500 text-white shadow-lg shadow-sky-200'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    {time}秒
-                  </button>
-                ))}
-                <div className="relative">
-                  <input
-                    type="number"
-                    placeholder="カスタム"
-                    value={customTime}
-                    onChange={(e) => {
-                      setCustomTime(e.target.value);
-                      setTimeLimit(0);
-                    }}
-                    className={`w-full py-3 px-4 rounded-xl font-bold outline-none transition-all ${
-                      customTime
-                        ? 'bg-sky-500 text-white placeholder-sky-200 shadow-lg shadow-sky-200'
-                        : 'bg-slate-100 text-slate-600 placeholder-slate-400'
-                    }`}
-                  />
+              <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                <div className="flex justify-between items-end mb-4">
+                  <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Duration</div>
+                  <div className="text-3xl font-black text-sky-500 flex items-baseline gap-1">
+                    {timeLimit >= 60 ? Math.floor(timeLimit / 60) : 0}
+                    <span className="text-sm text-slate-400 font-bold">{timeLimit >= 60 ? '分' : ''}</span>
+                    {timeLimit % 60 > 0 || timeLimit < 60 ? timeLimit % 60 : ''}
+                    <span className="text-sm text-slate-400 font-bold">{timeLimit % 60 > 0 || timeLimit < 60 ? '秒' : ''}</span>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min="10"
+                  max="600"
+                  step="10"
+                  value={timeLimit}
+                  onChange={(e) => setTimeLimit(parseInt(e.target.value))}
+                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-500"
+                />
+                <div className="flex justify-between mt-2 px-1">
+                  <span className="text-[10px] font-bold text-slate-400">10s</span>
+                  <span className="text-[10px] font-bold text-slate-400">5m</span>
+                  <span className="text-[10px] font-bold text-slate-400">10m</span>
                 </div>
               </div>
             </section>
@@ -236,4 +228,4 @@ const GodHintSetup: React.FC<GodHintSetupProps> = ({ onStart, onBack, onHome }) 
   );
 };
 
-export default GodHintSetup;
+export default NGHintSetup;

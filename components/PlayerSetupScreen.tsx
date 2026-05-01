@@ -21,7 +21,7 @@ const PlayerSetupScreen: React.FC<PlayerSetupScreenProps> = ({ onSetupComplete, 
     }
   };
 
-  const playerCounts = Array.from({ length: 8 }, (_, i) => i + 3); // 3 to 10 players
+  const playerCounts = Array.from({ length: 5 }, (_, i) => i + 3); // 3 to 7 players
 
   const handleSelectCount = (count: number) => {
     setPlayerCount(count);

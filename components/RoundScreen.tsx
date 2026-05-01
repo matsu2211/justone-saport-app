@@ -1,11 +1,9 @@
-
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { RoundPhase, Player } from '../types';
 import { generateWords, checkDuplicates } from '../services/wordService';
-import { RetryIcon, PlayIcon, EyeClosedIcon, EyeOpenIcon, ShuffleIcon, UserIcon, PencilSquareIcon, CheckIcon, CrossIcon, ClockIcon, LightbulbIcon, ArrowLeftIcon, HomeIcon, ListIcon } from './Icons';
+import { RetryIcon, PlayIcon, PauseIcon, EyeClosedIcon, EyeOpenIcon, ShuffleIcon, UserIcon, PencilSquareIcon, CheckIcon, CrossIcon, ClockIcon, LightbulbIcon, ArrowLeftIcon, HomeIcon, ClipboardIcon } from './Icons';
 import Spinner from './Spinner';
 import Timer from './Timer';
-import WordListModal from './WordListModal';
 
 interface RoundScreenProps {
   players: Player[];
@@ -14,8 +12,8 @@ interface RoundScreenProps {
   onBack: () => void;
 }
 
-const GUESSING_TIME_LIMIT = 90; // seconds
-const CLUE_THINKING_TIME_LIMIT = 60; // seconds
+const DEFAULT_GUESSING_TIME = 90; // seconds
+const DEFAULT_THINKING_TIME = 60; // seconds
 
 const RoundScreen: React.FC<RoundScreenProps> = ({ players, onNextRound, onRestart, onBack }) => {
   const [phase, setPhase] = useState<RoundPhase>(RoundPhase.GuesserSelection);
@@ -25,14 +23,27 @@ const RoundScreen: React.FC<RoundScreenProps> = ({ players, onNextRound, onResta
   const [guesser, setGuesser] = useState<Player | null>(null);
   const [clues, setClues] = useState<Map<string, string>>(new Map());
   const [guess, setGuess] = useState<string>('');
-  const [timeLeft, setTimeLeft] = useState(GUESSING_TIME_LIMIT);
+
+  // Timer settings
+  const [guessingLimit, setGuessingLimit] = useState(DEFAULT_GUESSING_TIME);
+  const [thinkingLimit, setThinkingLimit] = useState(DEFAULT_THINKING_TIME);
+
+  const [timeLeft, setTimeLeft] = useState(DEFAULT_GUESSING_TIME);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [thinkingTimeLeft, setThinkingTimeLeft] = useState(CLUE_THINKING_TIME_LIMIT);
+  const [thinkingTimeLeft, setThinkingTimeLeft] = useState(DEFAULT_THINKING_TIME);
   const [isThinkingTimerRunning, setIsThinkingTimerRunning] = useState(false);
   const [validClues, setValidClues] = useState<Map<string, string>>(new Map());
   const [duplicateClues, setDuplicateClues] = useState<Map<string, string>>(new Map());
-  const [isWordListOpen, setIsWordListOpen] = useState(false);
+  const [showDuplicates, setShowDuplicates] = useState(false);
   const [customWord, setCustomWord] = useState('');
+  const [isWordCopied, setIsWordCopied] = useState(false);
+
+  const handleCopyWord = useCallback(() => {
+    navigator.clipboard.writeText(secretWord).then(() => {
+      setIsWordCopied(true);
+      setTimeout(() => setIsWordCopied(false), 2000);
+    });
+  }, [secretWord]);
 
   const handleInternalBack = useCallback(() => {
     switch (phase) {
@@ -104,14 +115,10 @@ const RoundScreen: React.FC<RoundScreenProps> = ({ players, onNextRound, onResta
     const initialClues = new Map(clueGivers.map(p => [p.id, '']));
     setClues(initialClues);
     setPhase(RoundPhase.ClueThinking);
-    setThinkingTimeLeft(CLUE_THINKING_TIME_LIMIT);
+    setThinkingTimeLeft(thinkingLimit);
     setIsThinkingTimerRunning(false);
   };
   
-  const handleStartThinkingTimer = () => {
-    setIsThinkingTimerRunning(true);
-  };
-
   const handleProceedToClueInput = useCallback(() => {
     setIsThinkingTimerRunning(false);
     setPhase(RoundPhase.ClueInput);
@@ -146,6 +153,7 @@ const RoundScreen: React.FC<RoundScreenProps> = ({ players, onNextRound, onResta
     
     setValidClues(valid);
     setDuplicateClues(duplicate);
+    setShowDuplicates(false);
     setPhase(RoundPhase.Guessing);
   };
 
@@ -154,10 +162,67 @@ const RoundScreen: React.FC<RoundScreenProps> = ({ players, onNextRound, onResta
     setPhase(RoundPhase.Result);
   }, []);
 
+  const handleStartThinkingTimer = () => {
+    setThinkingTimeLeft(thinkingLimit);
+    setIsThinkingTimerRunning(true);
+  };
+
   const handleStartTimer = () => {
+    setTimeLeft(guessingLimit);
     setIsTimerRunning(true);
   };
 
+  const handleToggleThinkingTimer = () => {
+    setIsThinkingTimerRunning(prev => !prev);
+  };
+
+  const handleToggleGuessingTimer = () => {
+    setIsTimerRunning(prev => !prev);
+  };
+
+  const renderTimeSelector = (currentLimit: number, onChange: (val: number) => void, label: string, onStart?: () => void) => {
+    const options = [
+      { label: '1分', value: 60 },
+      { label: '2分', value: 120 },
+      { label: '3分', value: 180 },
+    ];
+
+    return (
+      <div className="mt-4 flex flex-col items-center w-full max-w-xs">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{label}</p>
+        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 w-full flex flex-col gap-4">
+          <div className="grid grid-cols-3 gap-2">
+            {options.map((opt) => (
+              <button
+                key={opt.label}
+                onClick={() => {
+                  console.log(`Setting ${label} to ${opt.value}s`);
+                  onChange(opt.value);
+                }}
+                className={`py-3 rounded-xl font-black transition-all ${
+                  currentLimit === opt.value
+                    ? 'bg-sky-500 text-white shadow-lg shadow-sky-100 scale-105'
+                    : 'bg-white text-slate-400 border border-slate-100 hover:border-sky-200 hover:text-sky-500'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          
+          {onStart && (
+            <button
+              onClick={onStart}
+              className="w-full py-3 bg-amber-500 text-white font-black rounded-xl shadow-lg shadow-amber-100 hover:bg-amber-600 active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+              <ClockIcon className="w-5 h-5" />
+              タイマースタート
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
   useEffect(() => {
     if (!isThinkingTimerRunning || phase !== RoundPhase.ClueThinking) {
       return;
@@ -176,16 +241,23 @@ const RoundScreen: React.FC<RoundScreenProps> = ({ players, onNextRound, onResta
   }, [isThinkingTimerRunning, phase, handleProceedToClueInput]);
 
   useEffect(() => {
-    if (!isTimerRunning || phase !== RoundPhase.Guessing) {
+    if (phase !== RoundPhase.Guessing) {
       return;
     }
 
-    setTimeLeft(GUESSING_TIME_LIMIT);
-    const timerId = setInterval(() => {
-      setTimeLeft(prev => prev - 1);
-    }, 1000);
-    return () => clearInterval(timerId);
+    if (isTimerRunning) {
+      const timerId = setInterval(() => {
+        setTimeLeft(prev => prev - 1);
+      }, 1000);
+      return () => clearInterval(timerId);
+    }
   }, [isTimerRunning, phase]);
+
+  useEffect(() => {
+    if (phase === RoundPhase.Guessing && timeLeft === guessingLimit && !isTimerRunning) {
+        // Just sync if needed
+    }
+  }, [guessingLimit, phase, timeLeft, isTimerRunning]);
 
   useEffect(() => {
     if (isTimerRunning && phase === RoundPhase.Guessing && timeLeft <= 0) {
@@ -243,6 +315,9 @@ const RoundScreen: React.FC<RoundScreenProps> = ({ players, onNextRound, onResta
                 <PlayIcon className="w-6 h-6 mr-2" />
                 お<ruby>題設定<rt>だいせってい</rt></ruby>に<ruby>進<rt>すす</rt></ruby>む
             </button>
+            <p className="mt-4 text-rose-500 font-bold animate-pulse">
+              ※画面共有を停止してください
+            </p>
           </div>
         );
 
@@ -283,18 +358,10 @@ const RoundScreen: React.FC<RoundScreenProps> = ({ players, onNextRound, onResta
                 >
                   <ShuffleIcon className="w-6 h-6" />
                 </button>
-                <button
-                  onClick={() => setIsWordListOpen(true)}
-                  className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-full transition-colors"
-                  title="お題一覧を表示"
-                >
-                  <ListIcon className="w-6 h-6" />
-                </button>
               </div>
             </div>
             <p className="mt-1 text-slate-500">
-              <EyeClosedIcon className="inline-block w-5 h-5 mr-1 align-text-bottom" />
-              <ruby>回答者<rt>かいとうしゃ</rt></ruby>の{guesser?.name}さんは<ruby>見<rt>み</rt></ruby>ないでください。
+              <ruby>回答者<rt>かいとうしゃ</rt></ruby>の{guesser?.name}さんは１〜５の<ruby>好<rt>す</rt></ruby>きな<ruby>数字<rt>すうじ</rt></ruby>を<ruby>教<rt>おし</rt></ruby>えてください
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-6">
               {words.map((word, index) => (
@@ -324,7 +391,6 @@ const RoundScreen: React.FC<RoundScreenProps> = ({ players, onNextRound, onResta
                   type="text" 
                   value={customWord}
                   onChange={(e) => setCustomWord(e.target.value)}
-                  placeholder="お題を入力..."
                   className="flex-grow px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition-all text-slate-700"
                 />
                 <button
@@ -342,6 +408,25 @@ const RoundScreen: React.FC<RoundScreenProps> = ({ players, onNextRound, onResta
       case RoundPhase.ClueThinking:
         return (
           <div className="text-center w-full flex flex-col items-center justify-center animate-fade-in">
+            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 mb-8 w-full max-w-md relative overflow-hidden">
+                <div className="absolute top-2 left-4 text-[10px] font-black text-sky-300 uppercase tracking-widest">SECRET WORD</div>
+                <div className="mt-2 flex items-center justify-center gap-4">
+                    <span className="text-3xl font-black text-slate-800">{secretWord}</span>
+                    <button
+                        onClick={handleCopyWord}
+                        className="p-2 bg-white text-slate-400 hover:text-sky-500 rounded-lg shadow-sm border border-slate-100 transition-all relative"
+                        title="お題をコピー"
+                    >
+                        <ClipboardIcon className="w-5 h-5" />
+                        {isWordCopied && (
+                            <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap">
+                                Copied!
+                            </span>
+                        )}
+                    </button>
+                </div>
+            </div>
+
             <h2 className="text-xl sm:text-2xl font-semibold text-slate-700 flex items-center justify-center gap-2">
               <LightbulbIcon className="w-7 h-7" />
               ヒント<ruby>考<rt>かんが</rt></ruby>え<ruby>中<rt>ちゅう</rt></ruby>...
@@ -351,23 +436,57 @@ const RoundScreen: React.FC<RoundScreenProps> = ({ players, onNextRound, onResta
             </p>
             
             {isThinkingTimerRunning ? (
-                <Timer timeLeft={thinkingTimeLeft} timeLimit={CLUE_THINKING_TIME_LIMIT} />
+                <div className="flex flex-col items-center">
+                    <Timer 
+                      timeLeft={thinkingTimeLeft} 
+                      timeLimit={thinkingLimit} 
+                      isRunning={isThinkingTimerRunning} 
+                      onClick={handleToggleThinkingTimer}
+                    />
+                    <button
+                        onClick={handleToggleThinkingTimer}
+                        className="mt-2 flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-full font-bold hover:bg-slate-200 transition-all"
+                    >
+                        <PauseIcon className="w-4 h-4" />
+                        <ruby>一時停止<rt>いちじていし</rt></ruby>
+                    </button>
+                </div>
             ) : (
-                <div className="relative my-6 w-32 h-32 flex items-center justify-center">
-                    <LightbulbIcon className="w-20 h-20 text-slate-300" />
+                <div className="flex flex-col items-center">
+                    {thinkingTimeLeft < thinkingLimit ? (
+                        <div className="flex flex-col items-center">
+                            <Timer 
+                              timeLeft={thinkingTimeLeft} 
+                              timeLimit={thinkingLimit} 
+                              isRunning={isThinkingTimerRunning} 
+                              onClick={handleToggleThinkingTimer}
+                            />
+                            <button
+                                onClick={handleToggleThinkingTimer}
+                                className="mt-2 flex items-center gap-2 px-4 py-2 bg-sky-100 text-sky-600 rounded-full font-bold hover:bg-sky-200 transition-all"
+                            >
+                                <PlayIcon className="w-4 h-4" />
+                                <ruby>再開<rt>さいかい</rt></ruby>
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="relative my-6 w-32 h-32 flex items-center justify-center">
+                                <LightbulbIcon className="w-20 h-20 text-slate-300" />
+                            </div>
+                            {renderTimeSelector(thinkingLimit, (val) => {
+                                setThinkingLimit(val);
+                                setThinkingTimeLeft(val);
+                            }, "考える時間", handleStartThinkingTimer)}
+                        </>
+                    )}
                 </div>
             )}
 
-            <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
-              {!isThinkingTimerRunning && (
-                <button
-                    onClick={handleStartThinkingTimer}
-                    className="flex items-center justify-center px-8 py-4 bg-amber-500 text-white font-bold rounded-lg shadow-md hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-opacity-50 transition-transform transform hover:scale-105"
-                >
-                    <ClockIcon className="w-6 h-6 mr-2" />
-                    タイマーをスタート
-                </button>
-              )}
+            <div className="mt-8 space-y-4">
+              <p className="text-sm font-bold text-amber-600 bg-amber-50 p-3 rounded-xl border border-amber-100 max-w-md mx-auto">
+                GMはお題をヒント出題者にアナウンスしてください。タイマー終了後、合図で一斉にヒントをチャットに送ってもらってください
+              </p>
               <button
                 onClick={handleProceedToClueInput}
                 className="w-full sm:w-auto flex items-center justify-center px-8 py-4 bg-sky-500 text-white font-bold rounded-lg shadow-md hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-opacity-50 transition-transform transform hover:scale-105"
@@ -384,6 +503,12 @@ const RoundScreen: React.FC<RoundScreenProps> = ({ players, onNextRound, onResta
           <div className="text-center w-full">
             <h2 className="text-2xl font-semibold text-slate-700">ヒントを<ruby>入力<rt>にゅうりょく</rt></ruby></h2>
             <p className="mt-1 text-slate-500">お<ruby>題<rt>だい</rt></ruby>: <span className="font-bold text-sky-600">{secretWord}</span></p>
+            
+            <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm space-y-1 max-w-md mx-auto text-center">
+              <p className="font-bold text-slate-600">かぶったヒントは次の画面で自動的に処理されます</p>
+              <p className="text-[11px] text-rose-500 font-bold">※「緑」と「みどり」などは別として処理されるので入力時に同じ内容は表記の統一をしてください</p>
+            </div>
+
             <div className="mt-6 space-y-4 max-h-[280px] overflow-y-auto px-2">
               {clueGivers.map((player) => (
                 <div key={player.id} className="flex items-center gap-3">
@@ -396,7 +521,6 @@ const RoundScreen: React.FC<RoundScreenProps> = ({ players, onNextRound, onResta
                             value={clues.get(player.id) || ''}
                             onChange={(e) => handleClueChange(player.id, e.target.value)}
                             className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition"
-                            placeholder="ヒントを1<ruby>単語<rt>たんご</rt></ruby>で<ruby>入力<rt>にゅうりょく</rt></ruby>"
                         />
                     </div>
                 </div>
@@ -430,67 +554,69 @@ const RoundScreen: React.FC<RoundScreenProps> = ({ players, onNextRound, onResta
 
               {duplicateClues.size > 0 && (
                   <div className="mt-4">
-                      <h3 className="font-bold text-lg text-rose-600"><ruby>被<rt>かぶ</rt></ruby>ったヒント</h3>
-                      <div className="mt-2 flex flex-wrap justify-center gap-3">
-                      {Array.from(duplicateClues.values()).map((clue, i) => (
-                          <div key={i} className="bg-rose-100 text-rose-800 line-through px-4 py-2 rounded-lg">{clue}</div>
-                      ))}
-                      </div>
+                      <button 
+                        onClick={() => setShowDuplicates(!showDuplicates)}
+                        className="flex items-center justify-center gap-2 mx-auto text-slate-500 hover:text-rose-500 transition-colors bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100"
+                      >
+                        {showDuplicates ? <EyeOpenIcon className="w-4 h-4" /> : <EyeClosedIcon className="w-4 h-4" />}
+                        <span className="text-sm font-bold">
+                          {showDuplicates ? '被ったヒントを隠す' : '被ったヒントを表示'}
+                        </span>
+                        <span className="bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded text-[10px] ml-1">
+                          {duplicateClues.size}
+                        </span>
+                      </button>
+                      
+                      {showDuplicates && (
+                        <div className="mt-4 animate-fade-in">
+                          <h3 className="font-bold text-sm text-rose-600 mb-2 uppercase tracking-wider"><ruby>被<rt>かぶ</rt></ruby>ったヒント</h3>
+                          <div className="flex flex-wrap justify-center gap-3">
+                            {Array.from(duplicateClues.values()).map((clue, i) => (
+                                <div key={i} className="bg-rose-50 text-rose-400 line-through px-4 py-2 rounded-lg border border-rose-100">{clue}</div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                   </div>
               )}
           </div>
         );
 
         return (
-          <div className="text-center w-full flex flex-col items-center">
+          <div className="text-center w-full flex flex-col items-center animate-fade-in">
+            <p className="mb-4 text-rose-500 font-bold animate-pulse">
+              ※画面共有をONにしてください
+            </p>
             <h2 className="text-xl sm:text-2xl font-semibold text-slate-700">
                 <EyeOpenIcon className="inline-block w-7 h-7 mr-2 align-text-bottom" />
                 <ruby>回答者<rt>かいとうしゃ</rt></ruby>: {guesser?.name}さん、お<ruby>題<rt>だい</rt></ruby>は<ruby>何<rt>なに</rt></ruby>でしょう？
             </h2>
             
-            {!isTimerRunning ? (
-              <div className="mt-8 animate-fade-in w-full flex flex-col items-center">
-                <p className="text-slate-600">ヒントを<ruby>確認<rt>かくにん</rt></ruby>し、<ruby>準備<rt>じゅんび</rt></ruby>ができたらタイマーを<ruby>開始<rt>かいし</rt></ruby>してください。</p>
-                <div className="my-6">
-                  {renderClues()}
+            <div className="w-full mt-8">
+                {renderClues()}
+                
+                <div className="mt-10 max-w-sm mx-auto">
+                  <label htmlFor="guesser-answer" className="font-semibold text-slate-600 block mb-2">あなたの<ruby>答<rt>こた</rt></ruby>え</label>
+                  <input
+                      id="guesser-answer"
+                      type="text"
+                      value={guess}
+                      onChange={(e) => setGuess(e.target.value)}
+                      placeholder="お題を入力..."
+                      className="w-full pl-4 pr-3 py-4 border-2 border-slate-200 rounded-2xl text-2xl text-center focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 outline-none transition-all shadow-inner bg-slate-50"
+                  />
                 </div>
-                <button
-                    onClick={handleStartTimer}
-                    className="flex items-center justify-center px-8 py-4 bg-amber-500 text-white font-bold rounded-lg shadow-md hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-opacity-50 transition-transform transform hover:scale-105"
-                >
-                    <ClockIcon className="w-6 h-6 mr-2" />
-                    タイマーをスタート ({GUESSING_TIME_LIMIT}<ruby>秒<rt>びょう</rt></ruby>)
-                </button>
-              </div>
-            ) : (
-              <div className="w-full flex flex-col items-center animate-fade-in">
-                <Timer timeLeft={timeLeft} timeLimit={GUESSING_TIME_LIMIT} />
-                <div className="w-full">
-                    {renderClues()}
-                    <div className="mt-6">
-                      <label htmlFor="guesser-answer" className="font-semibold text-slate-600">あなたの<ruby>答<rt>こた</rt></ruby>え</label>
-                      <input
-                          id="guesser-answer"
-                          type="text"
-                          value={guess}
-                          onChange={(e) => setGuess(e.target.value)}
-                          className="mt-2 w-full max-w-sm mx-auto block pl-4 pr-3 py-3 border border-slate-300 rounded-lg text-xl text-center focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition"
-                          placeholder="お<ruby>題<rt>だい</rt></ruby>を<ruby>推測<rt>すいそく</rt></ruby>して<ruby>入力<rt>にゅうりょく</rt></ruby>"
-                      />
-                    </div>
 
-                    <div className="mt-6">
-                        <button
-                        onClick={handleConfirmGuess}
-                        disabled={guess.trim() === ''}
-                        className="w-full sm:w-auto flex items-center justify-center px-8 py-4 bg-sky-500 text-white font-bold rounded-lg shadow-md hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-opacity-50 transition-transform transform hover:scale-105 disabled:bg-slate-300 disabled:cursor-not-allowed disabled:shadow-none"
-                        >
-                        <ruby>答<rt>こた</rt></ruby>えを<ruby>確定<rt>かくてい</rt></ruby>する
-                        </button>
-                    </div>
+                <div className="mt-10">
+                    <button
+                    onClick={handleConfirmGuess}
+                    disabled={guess.trim() === ''}
+                    className="w-full sm:w-auto flex items-center justify-center px-10 py-5 bg-sky-500 text-white font-black text-xl rounded-2xl shadow-xl shadow-sky-200 hover:bg-sky-600 active:scale-95 disabled:bg-slate-300 disabled:cursor-not-allowed disabled:shadow-none transition-all"
+                    >
+                    <ruby>答<rt>こた</rt></ruby>えを<ruby>確定<rt>かくてい</rt></ruby>する
+                    </button>
                 </div>
-              </div>
-            )}
+            </div>
           </div>
         );
       }
@@ -569,11 +695,6 @@ const RoundScreen: React.FC<RoundScreenProps> = ({ players, onNextRound, onResta
         </button>
       </div>
       {renderContent()}
-      <WordListModal 
-        isOpen={isWordListOpen} 
-        onClose={() => setIsWordListOpen(false)} 
-        onSelectWord={handleWordSelect}
-      />
     </div>
   );
 };

@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { GodHintState, GodHintStatus, NGMode } from '../../types';
+import { NGHintState, NGHintStatus, NGMode } from '../../types';
 import { getRandomWord, generateNGWords } from '../../services/wordService';
 import RulesModal from '../RulesModal';
+import Timer from '../Timer';
 import { 
   PlayIcon, 
   PauseIcon, 
@@ -21,13 +22,13 @@ import {
   QuestionMarkCircleIcon
 } from '../Icons';
 
-interface GodHintGMProps {
+interface NGHintGMProps {
   initialSettings: { timeLimit: number; ngMode: NGMode };
   onRestart: () => void;
 }
 
-const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => {
-  const [state, setState] = useState<GodHintState>({
+const NGHintGM: React.FC<NGHintGMProps> = ({ initialSettings, onRestart }) => {
+  const [state, setState] = useState<NGHintState>({
     timeLimit: initialSettings.timeLimit,
     remainingTime: initialSettings.timeLimit,
     score: 0,
@@ -35,8 +36,8 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
     currentNGWords: [],
     ngMode: initialSettings.ngMode,
     usedWords: [],
-    status: GodHintStatus.Setup,
-    isWordHidden: false,
+    status: NGHintStatus.Setup,
+    isWordHidden: true,
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -46,18 +47,18 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Update local state
-  const updateState = (updates: Partial<GodHintState>) => {
+  const updateState = (updates: Partial<NGHintState>) => {
     setState(prev => ({ ...prev, ...updates }));
   };
 
   // Timer logic
   useEffect(() => {
-    if (state.status === GodHintStatus.Playing && state.remainingTime > 0) {
+    if (state.status === NGHintStatus.Playing && state.remainingTime > 0) {
       timerRef.current = setInterval(() => {
         updateState({ remainingTime: state.remainingTime - 1 });
       }, 1000);
     } else if (state.remainingTime === 0) {
-      updateState({ status: GodHintStatus.Finished });
+      updateState({ status: NGHintStatus.Finished });
       if (timerRef.current) clearInterval(timerRef.current);
     }
 
@@ -68,10 +69,16 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
 
   // Fetch next word
   const nextWord = useCallback(async (isCorrect: boolean) => {
+    // 即座にお題を隠し、ローディング状態にする
     setIsLoading(true);
+    updateState({ 
+      isWordHidden: true,
+      currentWord: '', // 前のお題を消去
+      currentNGWords: [] 
+    });
+    
     const word = getRandomWord(state.usedWords);
     
-    // 現在のモードに応じて個数を決定。ログを出力してデバッグ。
     let ngCount = 0;
     if (state.ngMode === NGMode.EASY) ngCount = 2;
     else if (state.ngMode === NGMode.NORMAL) ngCount = 3;
@@ -86,7 +93,7 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
       currentNGWords: ngWords,
       usedWords: [...state.usedWords, word],
       score: isCorrect ? state.score + 1 : state.score,
-      isWordHidden: false,
+      isWordHidden: true,
     });
     setIsLoading(false);
   }, [state.usedWords, state.score, state.ngMode]);
@@ -94,25 +101,25 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
   // Start game
   const startGame = async () => {
     await nextWord(false);
-    updateState({ status: GodHintStatus.Ready });
+    updateState({ status: NGHintStatus.Ready });
   };
 
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (state.status !== GodHintStatus.Playing && state.status !== GodHintStatus.Ready) return;
+      if (state.status !== NGHintStatus.Playing && state.status !== NGHintStatus.Ready) return;
       
       if (e.key === 'Enter') {
-        if (state.status === GodHintStatus.Ready) {
-          updateState({ status: GodHintStatus.Playing });
+        if (state.status === NGHintStatus.Ready) {
+          updateState({ status: NGHintStatus.Playing });
         } else {
           nextWord(true);
         }
       } else if (e.key === ' ') {
         e.preventDefault();
-        if (state.status === GodHintStatus.Ready) {
-          updateState({ status: GodHintStatus.Playing });
+        if (state.status === NGHintStatus.Ready) {
+          updateState({ status: NGHintStatus.Playing });
         } else {
           nextWord(false);
         }
@@ -148,15 +155,10 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
     onRestart();
   };
 
-  if (state.status === GodHintStatus.Setup) {
+  if (state.status === NGHintStatus.Setup) {
     return (
       <div className="text-center p-8">
-        <div className="bg-rose-500 text-white p-4 rounded-xl mb-8 flex items-center justify-center gap-3 animate-pulse">
-          <AlertTriangleIcon className="w-6 h-6" />
-          <span className="font-black text-lg">※回答者には見せないでください</span>
-        </div>
-        
-        <h2 className="text-3xl font-black text-slate-800 mb-8"><ruby>神<rt>かみ</rt></ruby>ヒントモード GM<ruby>画面<rt>がめん</rt></ruby></h2>
+        <h2 className="text-3xl font-black text-slate-800 mb-8">NGワードゲーム GM<ruby>画面<rt>がめん</rt></ruby></h2>
         
         <div className="grid grid-cols-2 gap-6 max-w-lg mx-auto mb-10">
           <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
@@ -196,14 +198,9 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
     );
   }
 
-  if (state.status === GodHintStatus.Finished) {
+  if (state.status === NGHintStatus.Finished) {
     return (
       <div className="text-center p-8">
-        <div className="bg-rose-500 text-white p-4 rounded-xl mb-8 flex items-center justify-center gap-3">
-          <AlertTriangleIcon className="w-6 h-6" />
-          <span className="font-black text-lg">※回答者には見せないでください</span>
-        </div>
-
         <TrophyIcon className="w-24 h-24 text-amber-500 mx-auto mb-4" />
         <h2 className="text-4xl font-black text-slate-800 mb-2">ゲーム<ruby>終了<rt>しゅうりょう</rt></ruby>！</h2>
         <div className="text-6xl font-black text-sky-500 mb-10 flex flex-col items-center gap-4">
@@ -242,22 +239,24 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4">
-      <div className="bg-rose-500 text-white p-3 rounded-xl mb-6 flex items-center justify-center gap-3">
-        <AlertTriangleIcon className="w-5 h-5" />
-        <span className="font-black">※回答者には見せないでください</span>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left Column: Status */}
         <div className="space-y-4">
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-slate-400 font-bold text-sm uppercase">
+          <div className="bg-slate-50 p-4 rounded-3xl border border-slate-100 flex flex-col items-center">
+            <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest mb-2">
               <ClockIcon className="w-4 h-4" />
               <ruby>残<rt>のこ</rt></ruby>り<ruby>時間<rt>じかん</rt></ruby>
             </div>
-            <div className={`text-3xl font-black ${state.remainingTime <= 10 ? 'text-rose-500 animate-pulse' : 'text-slate-800'}`}>
-              {state.remainingTime}s
-            </div>
+            <Timer 
+              timeLeft={state.remainingTime} 
+              timeLimit={state.timeLimit} 
+              isRunning={state.status === NGHintStatus.Playing}
+              size="sm"
+              onClick={() => {
+                if (state.status === NGHintStatus.Playing) updateState({ status: NGHintStatus.Paused });
+                else if (state.status === NGHintStatus.Paused) updateState({ status: NGHintStatus.Playing });
+              }}
+            />
           </div>
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-2 text-slate-400 font-bold text-sm uppercase">
@@ -270,9 +269,9 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
           </div>
           
           <div className="pt-4 space-y-2">
-            {state.status === GodHintStatus.Ready ? (
+            {state.status === NGHintStatus.Ready ? (
               <button
-                onClick={() => updateState({ status: GodHintStatus.Playing })}
+                onClick={() => updateState({ status: NGHintStatus.Playing })}
                 className="w-full py-4 bg-emerald-500 text-white font-black rounded-xl hover:bg-emerald-600 shadow-lg shadow-emerald-100 transition-all flex items-center justify-center gap-2 animate-bounce"
               >
                 <PlayIcon className="w-6 h-6" />
@@ -281,14 +280,14 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
             ) : (
               <>
                 <button
-                  onClick={() => updateState({ status: state.status === GodHintStatus.Playing ? GodHintStatus.Paused : GodHintStatus.Playing })}
+                  onClick={() => updateState({ status: state.status === NGHintStatus.Playing ? NGHintStatus.Paused : NGHintStatus.Playing })}
                   className="w-full py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
                 >
-                  {state.status === GodHintStatus.Playing ? <PauseIcon className="w-5 h-5" /> : <PlayIcon className="w-5 h-5" />}
-                  {state.status === GodHintStatus.Playing ? <ruby>一時停止<rt>いちじていし</rt></ruby> : <ruby>再開<rt>さいかい</rt></ruby>}
+                  {state.status === NGHintStatus.Playing ? <PauseIcon className="w-5 h-5" /> : <PlayIcon className="w-5 h-5" />}
+                  {state.status === NGHintStatus.Playing ? <ruby>一時停止<rt>いちじていし</rt></ruby> : <ruby>再開<rt>さいかい</rt></ruby>}
                 </button>
                 <button
-                  onClick={() => updateState({ status: GodHintStatus.Finished })}
+                  onClick={() => updateState({ status: NGHintStatus.Finished })}
                   className="w-full py-3 mt-2 bg-rose-50 text-rose-500 font-bold rounded-xl hover:bg-rose-100 border border-rose-100 transition-all flex items-center justify-center gap-2"
                 >
                   <TrophyIcon className="w-5 h-5" />
@@ -314,7 +313,10 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
         </div>
 
         {/* Center Column: Current Word */}
-        <div className="md:col-span-2 space-y-6">
+        <div className="md:col-span-2 space-y-4">
+          <p className="text-sm font-bold text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-100">
+            ゲームマスターはお題とNGワードをコピーしてゲーム用チャットに貼ってください
+          </p>
           <div className="bg-white p-8 rounded-3xl border-4 border-sky-500 shadow-xl relative overflow-hidden">
             <div className="absolute top-4 left-6 text-xs font-black text-sky-300 uppercase tracking-widest">CURRENT WORD</div>
             
@@ -323,7 +325,7 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500"></div>
               ) : (
                 <>
-                  <div className={`text-6xl font-black text-slate-800 transition-all ${state.isWordHidden ? 'blur-xl select-none opacity-20' : ''}`}>
+                  <div className={`text-6xl font-black text-slate-800 ${state.isWordHidden ? 'blur-xl select-none opacity-20' : ''}`}>
                     {state.currentWord}
                   </div>
                   
@@ -354,7 +356,7 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
               <button
                 onClick={handleCopy}
                 className="p-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-all relative"
-                title="コピー"
+                title="お題とNGワードをコピー"
               >
                 <ClipboardIcon className="w-6 h-6" />
                 {copied && (
@@ -392,9 +394,9 @@ const GodHintGM: React.FC<GodHintGMProps> = ({ initialSettings, onRestart }) => 
           </div>
         </div>
       </div>
-      <RulesModal isOpen={isRulesOpen} onClose={() => setIsRulesOpen(false)} mode="god-hint" />
+      <RulesModal isOpen={isRulesOpen} onClose={() => setIsRulesOpen(false)} mode="ng-hint" />
     </div>
   );
 };
 
-export default GodHintGM;
+export default NGHintGM;

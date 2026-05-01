@@ -15,7 +15,7 @@ import {
 interface RulesModalProps {
   isOpen: boolean;
   onClose: () => void;
-  mode?: 'standard' | 'god-hint';
+  mode?: 'standard' | 'ng-hint';
 }
 
 const RuleStep: React.FC<{ 
@@ -54,14 +54,14 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, mode = 'standa
 ただし！記入したヒントが他の誰かと同じ内容だと、そのヒントを回答者が見ることはできなくなるので要注意！
 ヒントを考えるときにプレイヤー同士が話し合うことは禁止です！`;
 
-  const godHintRules = `回答者（お題を当てる人）とヒント出題者に分かれます。
+  const ngHintRules = `回答者（お題を当てる人）とヒント出題者に分かれます。
 ヒント出題者は画面に表示される「お題」と、使ってはいけない「NGワード」を確認します。
 ヒント出題者はNGワードを絶対に言わないように注意しながら、回答者にお題を伝えるためのヒントを出します。
 回答者が正解したら次の問題へ！制限時間内にどれだけ多く正解できるか挑戦しましょう。`;
 
-  const rulesText = mode === 'god-hint' ? godHintRules : standardRules;
-  const phrase = mode === 'god-hint' 
-    ? "NGワードを避けながら、神がかりなヒントでお題を導こう！"
+  const rulesText = mode === 'ng-hint' ? ngHintRules : standardRules;
+  const phrase = mode === 'ng-hint' 
+    ? "NGワードを避けながら、的確なヒントでお題を導こう！"
     : "他の人とかぶらないように、お題を当てるためのヒントを考えよう！";
 
   const handleCopy = useCallback(() => {
@@ -104,7 +104,7 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, mode = 'standa
                   <Lightbulb size={24} />
                 </div>
                 <h2 className="text-2xl font-black text-slate-800">
-                  {mode === 'god-hint' ? <><ruby>神<rt>かみ</rt></ruby>ヒントモードの<ruby>遊<rt>あそ</rt></ruby>びかた</> : <><ruby>遊<rt>あそ</rt></ruby>びかたガイド</>}
+                  {mode === 'ng-hint' ? <>NGワードゲームの<ruby>遊<rt>あそ</rt></ruby>びかた</> : <><ruby>遊<rt>あそ</rt></ruby>びかたガイド</>}
                 </h2>
               </div>
               <button
@@ -118,7 +118,7 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, mode = 'standa
             {/* Content */}
             <div className="p-6 overflow-y-auto space-y-4 custom-scrollbar">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {mode === 'god-hint' ? (
+                {mode === 'ng-hint' ? (
                   <>
                     <RuleStep 
                       index={0}
@@ -223,7 +223,7 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, mode = 'standa
                   <div>
                     <h4 className="font-bold text-amber-900 text-sm"><ruby>禁止事項<rt>きんしじこう</rt></ruby></h4>
                     <p className="text-amber-800 text-xs mt-1 leading-relaxed">
-                      ヒントを<ruby>考<rt>かんが</rt></ruby>えている<ruby>間<rt>あいだ</rt></ruby>、プレイヤー<ruby>同士<rt>どうし</rt></ruby>で<ruby>相談<rt>そうだん</rt></ruby>したり、ヒントの<ruby>内容<rt>ないよう</rt></ruby>を<ruby>教<rt>おし</rt></ruby>え<ruby>合<rt>あ</rt></ruby>ったりしてはいけません。
+                      ヒントを<ruby>考<rt>かんが</rt></ruby>えている<ruby>間<rt>あいだ</rt></ruby>、プレイヤー<ruby>同士<rt>どうし</rt></ruby>で<ruby>相談<rt>そうだん</rt></ruby>したり、ヒント의<ruby>内容<rt>ないよう</rt></ruby>を<ruby>教<rt>おし</rt></ruby>え<ruby>合<rt>あ</rt></ruby>ったりしてはいけません。
                     </p>
                   </div>
                 </motion.div>
@@ -238,8 +238,8 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, mode = 'standa
                 <div className="inline-flex items-center gap-2 group/phrase relative">
                   <p className="text-slate-500 text-sm italic">
                     「
-                    {mode === 'god-hint' ? (
-                      <><ruby>NGワード<rt>えぬじーわーど</rt></ruby>を<ruby>避<rt>よ</rt></ruby>けながら、<ruby>神<rt>かみ</rt></ruby>がかりなヒントでお<ruby>題<rt>だい</rt></ruby>を<ruby>導<rt>みちび</rt></ruby>こう！</>
+                    {mode === 'ng-hint' ? (
+                      <><ruby>NGワード<rt>えぬじーわーど</rt></ruby>を<ruby>避<rt>よ</rt></ruby>けながら、<ruby>的確<rt>てきかく</rt></ruby>なヒントでお<ruby>題<rt>だい</rt></ruby>を<ruby>導<rt>みちび</rt></ruby>こう！</>
                     ) : (
                       <><ruby>他<rt>ほか</rt></ruby>の<ruby>人<rt>ひと</rt></ruby>とかぶらないように、お<ruby>題<rt>だい</rt></ruby>を<ruby>当<rt>あ</rt></ruby>てるためのヒントを<ruby>考<rt>かんが</rt></ruby>えよう！</>
                     )}

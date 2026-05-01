@@ -1,17 +1,14 @@
 import React, { useState } from 'react';
-import { PlayIcon, QuestionMarkCircleIcon, ListIcon } from './Icons';
+import { PlayIcon, QuestionMarkCircleIcon } from './Icons';
 import RulesModal from './RulesModal';
-import WordListModal from './WordListModal';
 
 interface StartScreenProps {
   onStart: () => void;
-  onPreview: () => void;
-  onGodHint: () => void;
+  onStartNGHint: () => void;
 }
 
-const StartScreen: React.FC<StartScreenProps> = ({ onStart, onPreview, onGodHint }) => {
+const StartScreen: React.FC<StartScreenProps> = ({ onStart, onStartNGHint }) => {
   const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
-  const [isWordListOpen, setIsWordListOpen] = useState(false);
 
   return (
     <>
@@ -30,19 +27,11 @@ const StartScreen: React.FC<StartScreenProps> = ({ onStart, onPreview, onGodHint
           </button>
           
           <button
-            onClick={onPreview}
-            className="w-full flex items-center justify-center px-8 py-4 bg-emerald-500 text-white font-bold rounded-lg shadow-md hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-50 transition-transform transform hover:scale-105"
-          >
-            <PlayIcon className="w-6 h-6 mr-2" />
-            プレビューモード
-          </button>
-
-          <button
-            onClick={onGodHint}
+            onClick={onStartNGHint}
             className="w-full flex items-center justify-center px-8 py-4 bg-amber-500 text-white font-bold rounded-lg shadow-md hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-opacity-50 transition-transform transform hover:scale-105"
           >
             <PlayIcon className="w-6 h-6 mr-2" />
-            <ruby>神<rt>かみ</rt></ruby>ヒントモード
+            NGワードゲーム
           </button>
 
           <button
@@ -52,18 +41,9 @@ const StartScreen: React.FC<StartScreenProps> = ({ onStart, onPreview, onGodHint
             <QuestionMarkCircleIcon className="w-6 h-6 mr-2" />
             ゲームのルール
           </button>
-
-          <button
-            onClick={() => setIsWordListOpen(true)}
-            className="w-full flex items-center justify-center px-8 py-4 bg-white border border-slate-300 text-slate-600 font-bold rounded-lg shadow-sm hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-opacity-50 transition-transform transform hover:scale-105"
-          >
-            <ListIcon className="w-6 h-6 mr-2" />
-            お題一覧を確認
-          </button>
         </div>
       </div>
-      <RulesModal isOpen={isRulesModalOpen} onClose={() => setIsRulesModalOpen(false)} />
-      <WordListModal isOpen={isWordListOpen} onClose={() => setIsWordListOpen(false)} />
+      <RulesModal isOpen={isRulesModalOpen} onClose={() => setIsRulesModalOpen(false)} mode={isRulesModalOpen ? 'standard' : undefined} />
     </>
   );
 };

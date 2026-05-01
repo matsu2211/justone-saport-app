@@ -7,19 +7,17 @@ export enum GamePhase {
   Start,
   PlayerSetup,
   Round,
-  Preview,
-  GodHintSetup,
-  GodHintGM,
+  NGHintSetup,
+  NGHintGM,
 }
 
 export enum NGMode {
-  OFF = 'OFF',
   EASY = 'EASY',
   NORMAL = 'NORMAL',
   HARD = 'HARD',
 }
 
-export enum GodHintStatus {
+export enum NGHintStatus {
   Setup,
   Ready,
   Playing,
@@ -27,7 +25,7 @@ export enum GodHintStatus {
   Finished,
 }
 
-export interface GodHintState {
+export interface NGHintState {
   timeLimit: number;
   remainingTime: number;
   score: number;
@@ -35,7 +33,7 @@ export interface GodHintState {
   currentNGWords: string[];
   ngMode: NGMode;
   usedWords: string[];
-  status: GodHintStatus;
+  status: NGHintStatus;
   isWordHidden: boolean;
 }
 
